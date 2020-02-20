@@ -1,0 +1,72 @@
+%!TEX program = xelatex
+% not lualatex because of a pgf bug: https://sourceforge.net/p/pgf/bugs/384/
+\documentclass[12pt, a4paper]{report}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{hyperref}
+\usepackage{utbmcovers}
+\usepackage{hyphenat}
+\usepackage[scale=0.75]{geometry}
+\usepackage{overpic}
+\usepackage{tikz}
+\usepackage{float}
+
+\usetikzlibrary{arrows, positioning}
+
+%----------------------------------------
+% hyperref configuration
+%----------------------------------------
+
+\hypersetup{
+    colorlinks=true,
+    urlcolor=,
+}
+
+\graphicspath{{images/}}
+
+\newcommand\tab[1][1cm]{\hspace*{#1}}
+\newcommand\TODO[1]{\textcolor{red}{TODO\@: #1}}
+
+%----------------------------------------
+% utbmcovers configuration
+%----------------------------------------
+
+\setutbmfrontillustration{utbm_default_illustration}
+\setutbmtitle{Développement d'un système de video-surveillance à faible latence}
+\setutbmsubtitle{Rapport de travail complémentaire \hyp{} A2019}
+\setutbmstudent{Nicolas BALLET}
+\setutbmstudentdepartment{Département Génie Informatique}
+\setutbmstudentpathway{Filière libre}
+\setutbmcompany{ }
+\setutbmcompanyaddress{ }
+\setutbmcompanywebsite{ }
+\setutbmcompanytutor{ }
+\setutbmschooltutor{Frank Gechter}
+\setutbmkeywords{Video surveillance \hyp{} Raspberry pi \hyp{} Gstreamer \hyp{} Github \hyp{} Reconnaissance faciale}
+\setutbmabstract{J'ai eu l'occasion en paralléle de mon stage de fin d'étude de concevoir et de commencer à produire une solution de video-surveillance à faible coût, à faible latence et facile à déployer.}
+
+%----------------------------------------
+% document
+%----------------------------------------
+
+\begin{document}
+\makeutbmfrontcover{}
+\tableofcontents
+\chapter{Introduction}
+Besoin:\newline
+    Au meme endroit je veux pouvoir voir un ensemble de caméra regroupées sous forme de groupes.\newline
+    Aucune solution simple, légère, à faible latence et opensource sur le marché.\newline
+    Solution simple avec Gstreamer App -> App. Pas pratique, obligé d'avoir l'appli.\newline
+    Proposition: Utiliser un navigateur comme client.\newline\newline
+Conception:\newline
+    Quels protocoles ? <Liste des protocoles de streaming> + choix du WebRTC\newline
+    Quels encodage ? Compatibilité navigateur: VP8/VP9 - H264\newline
+    Choix du H264 car encodage matériel plus répandu, mais possibilité de modification.\newline
+    Quelle technologie coté camera ? Besoin de rapidité, C / C++, Gstreamer, choix du C++ par compétences.\newline\newline
+Développement:\newline
+    Premier POC\newline
+    Refonte C++\newline
+    Définition d'un protocole métier\newline
+
+\makeutbmbackcover{}
+\end{document}
