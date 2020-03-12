@@ -11,9 +11,23 @@
 \usepackage[scale=0.75]{geometry}
 \usepackage{overpic}
 \usepackage{tikz}
+\usepackage{pgfplots}
 \usepackage{float}
 
-\usetikzlibrary{arrows, positioning}
+\usetikzlibrary{arrows, positioning, shapes}
+
+\tikzstyle{block} = [rectangle, draw, fill=blue!20, text centered, rounded corners, minimum height=2em]
+\tikzstyle{line} = [draw, -latex']
+\tikzset{
+    state/.style={
+           rectangle,
+           rounded corners,
+           draw=black, very thick,
+           minimum height=2em,
+           inner sep=2pt,
+           text centered,
+           },
+}
 
 %----------------------------------------
 % hyperref configuration
@@ -38,7 +52,7 @@
 
 \setutbmfrontillustration{monitoring.jpg}
 \setutbmtitle{Développement d'un système de video-surveillance à faible latence}
-\setutbmsubtitle{Rapport de travail complémentaire \hyp{} A2019}
+\setutbmsubtitle{Rapport de travail complémentaire \hyp{} A19}
 \setutbmstudent{Nicolas BALLET}
 \setutbmstudentdepartment{Département Génie Informatique}
 \setutbmstudentpathway{Filière libre}
@@ -47,7 +61,7 @@
 \setutbmcompanywebsite{ }
 \setutbmcompanytutor{ }
 \setutbmschooltutor{Frank Gechter}
-\setutbmkeywords{Video surveillance \hyp{} Raspberry pi \hyp{} Gstreamer \hyp{} Github \hyp{} Reconnaissance faciale}
+\setutbmkeywords{Video surveillance \hyp{} Raspberry pi \hyp{} Gstreamer \hyp{} Github}
 \setutbmabstract{J'ai eu l'occasion en paralléle de mon stage de fin d'étude de concevoir et de commencer à produire une solution de video-surveillance à faible coût, à faible latence et facile à déployer.}
 
 %----------------------------------------
@@ -58,14 +72,15 @@
 \makeutbmfrontcover{}
 \tableofcontents
 \chapter{Introduction}
-Quand on parle de vidéo surveillance, ça fait souvent débat...\newline
-Mais la surveillance peut être primordiale et nécessaire à la sécurité\newline
+La vidéo surveillance est un sujet faisant souvent débat.\newline
+Les questions de vie privée et d'impact sur le comportement mais aussi de la sécurité sont sensibles mais importantes.\newline
+Ici, je vais aborder le sujet de la vidéo surveillance dans un lieu privé, ou les personnes ont consentis à leurs surveillance.\newline
 
 Je parle de surveillance privée (chez soi) ou en milieu de type escape game, ou le contrôle doit être instantané en cas de problème ou de risque pour les joueurs, mais aussi de moyen de communication unilatéral en temps réel (et donc faible latence obligatoire).\newline
 
-Au même endroit je veux pouvoir voir un ensemble de caméra regroupées sous forme de groupes.\newline
-Aucune solution simple, légère, à faible latence et open source sur le marché.\newline
-Faible coût\newline
+Le flux vidéo doit être de qualité suffisante afin de percevoir des objets ou des personnes à l'opposé de la caméra, pour mes tests j'ai donc choisi une résolution minimale de 1280 par 720.
+Au même endroit (sur une seule application) je veux pouvoir voir un ensemble de caméra regroupées selon les pièces dans lesquelles elles sont installées.\newline
+Ne disposant que de raspberry pi 2 et 3, j'ai dirigé mon développement en direction de celles-ci mais sans m'y restreindre.
 
 \section{État de l'Art}
 \subsection{Solution existantes}
@@ -87,15 +102,55 @@ J'ai commencé par rechercher d'éventuelles solutions déjà existantes ou des 
         \end{itemize}
         }
 \end{itemize}
-\TODO{Inserer images de comparaison des latences}\newline
-J'ai choisi d'utiliser Gstreamer pour ses performances et la modularité qu'offre son système de pipeline.\newline
-
+\begin{figure}[H]
+    \begin{tikzpicture}
+        \begin{axis}[
+            xbar,
+            y axis line style = { opacity = 0 },
+            axis x line       = none,
+            tickwidth         = 0pt,
+            enlarge y limits  = 0.1,
+            enlarge x limits  = 0.02,
+            symbolic y coords = {Gstreamer App/Navigateur, Gstreamer App/App, Ffmpeg, Vlc, PiCamera, Motion},
+            ytick=data,
+            legend style={
+                at={(rel axis cs:0.5,1)},
+                anchor=south,
+                legend columns=-1, % -1 means place all in a row
+                column sep=2mm, % more space
+                draw=none % removes frame
+            },
+            nodes near coords,
+            ]
+            \addplot coordinates {
+                (2,Motion)
+                (2,PiCamera)
+                (2,Vlc)
+                (1,Ffmpeg)
+                (0.1,Gstreamer App/App)
+                (0.1,Gstreamer App/Navigateur)
+            };
+            \addplot coordinates {
+                (2,Motion)
+                (4,PiCamera)
+                (10,Vlc)
+                (15,Ffmpeg)
+                (30,Gstreamer App/App)
+                (30,Gstreamer App/Navigateur)
+            };
+            \legend{Latence (ms), Images par secondes (fps)}
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Comparaison des latences et des images par secondes observées pour du 1280x720}
+\end{figure}
+Comme on peut le voir ici, je n'ai pas réussi à trouver de solution qui soit à la fois à faible coût, à très faible latence, simple à déployer et Libre ou Open Source.\newline
+J'ai donc orienté mes recherche du côté du développement d'une application Gstreamer pour ses performances et la modularité qu'offre son système de pipeline.
 \subsection{Langage d'implémentation}
 Cette librairie peut être utilisée dans de multiples langages, j'ai du faire un choix parmi ceux que j'avais déjà utilisés auparavant.\newline
 \begin{itemize}
     \item Le C, langage bas niveau et performant. C'est avec ce langage que la preuve de concept qui m'a servie de référence à été implémentée.\newline
     \item Le C++ aussi performant mais dont le cout de développement est plus faible car il offre un plus haut niveau d'abstraction, mais aussi car il offre un meilleur contrôle de la mémoire.\newline
-    \item Et le Python, moins performant mais plus facile à utiliser.\newline
+    \item Et le Python, moins performant mais plus facile à utiliser.
 \end{itemize}
 \begin{figure}[H]
     \begin{minipage}{.5\textwidth}
@@ -114,7 +169,6 @@ Cette librairie peut être utilisée dans de multiples langages, j'ai du faire u
     \includegraphics[width=.35\textwidth]{python.png}
     \caption{Logo du langage de programmation Python}
 \end{figure}
-
 \subsection{Protocole réseau}
 Il existe beaucoup de protocoles réseau afin de streamer un flux vidéo, les plus pertinents sont les suivants:\newline
 \begin{itemize}
@@ -123,10 +177,10 @@ Il existe beaucoup de protocoles réseau afin de streamer un flux vidéo, les pl
 \end{itemize}
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1.0\textwidth]{realtime-protocols.png}
+    \frame{\includegraphics[width=1.0\textwidth]{realtime-protocols.png}}
     \caption{Graphique de synthèse des latences par protocole}
 \end{figure}
-
+\newpage
 \subsection{Encodage vidéo}
 L'encodage se devant d'être compatibles avec les navigateurs récents, la liste est assez courte:\newline
 \begin{itemize}
@@ -145,7 +199,6 @@ L'encodage se devant d'être compatibles avec les navigateurs récents, la liste
         \caption{Logo de l'encodage H264}
     \end{minipage}
 \end{figure}
-
 \subsection{Technologie serveur}
 Afin de centraliser les connexions et potentiellement pouvoir simplement ajouter de l'authentification à postériori, j'ai choisi d'utiliser une structure réseau en étoile avec un serveur central.\newline
 La plupart des exemples d'échanges en WebRTC que j'ai pu trouver se trouvaient être implémentés avec un serveur central en Python.\newline
@@ -153,7 +206,7 @@ Ici, j'ai choisi d'utiliser Django, qui est un framework d'application web en Py
 Afin de stocker les données j'ai garder le systèmes de base de données par défaut de Django, SQLite. Il ne nécessite aucune configuration et fonctionne directement.
 
 \section{Outils}
-\TODO{Neovim}
+Concernant les outils de développement, j'ai choisi d'utiliser Neovim couplé à une série de modules, notamment "Conquer of Completion" qui permet une bonne autocomplétion intélligent et une bonne coloration des langages.
 
 \section{Définition du sujet}
 J'ai donc choisi de me lancer dans le développement d'une solution de vidéo surveillance utilisant Gstreamer, du WebRTC, encodé en H264 (mais paramétrable car dépendant du matériel à disposition). La partie camera en C++ et la partie web en HTML/CSS/Javascript.\newline
@@ -171,29 +224,108 @@ L'établissement d'un connexion WebRTC nécessite plusieurs éléments:
 \end{itemize}
 \subsection{Refonte C++}
 Afin de pouvoir utiliser des outils plus haut niveau, j'ai ensuite refondu cette preuve de concept en C++.\newline
-Je n'ai pas beaucoup changé la structure du code, ça sera l'objet d'une prochaine refonte.
+Je n'ai pas beaucoup changé la structure du code, ça sera l'objet d'une prochaine refonte.\newline
 
 Quand la caméra démarre, elle met en place la racine de la pipeline et stream le flux vers un "trou noir" (un noeud qui ne fait qu'absorber le flux). Avant ce "trou noir" ce trouve un "tee" qui va permettre de dupliquer le flux et l'envoyer à plusieurs noeuds. C'est ici que les clients WebRTC viendront se brancher une fois que la connexion WebRTC à été négociée.
 
-\TODO{Représentation pipeline}
+\begin{figure}[H]
+    \begin{tikzpicture}[node distance = 2cm, auto]
+        % Place nodes
+        \node [block] (src) {rpicamsrc};
+        \node [block, right=1.5cm of src] (parse) {h264parse};
+        \node [block, right=1cm of parse] (payload) {payload};
+        \node [block, right=1.5cm of payload] (queue1) {queue};
+        \node [block, right of=queue1] (tee) {tee};
+
+        \node [block, right of=tee] (queue3) {queue};
+        \node [block, right of=queue3] (webrtc1) {webrtc};
+
+        \node [block, above of=queue3] (queue2) {queue};
+        \node [block, right of=queue2] (fakesink) {fakesink};
+        \node [above=of fakesink,anchor=center] (fakesink-comment) {Trou noir};
+
+        \node [block, below of=queue3] (queue4) {queue};
+        \node [block, right of=queue4] (webrtc2) {webrtc};
+
+        % Draw edges
+        \path [line] (src) -- node{caps} (parse);
+        \path [line] (parse) -- (payload);
+        \path [line] (payload) -- node{caps} (queue1);
+        \path [line] (queue1) -- (tee);
+
+        \path [line] (tee) -- (queue2);
+        \path [line] (queue2) -- (fakesink);
+        \draw (fakesink) -- (fakesink-comment);
+
+        \path [line, dashed] (tee) -- (queue3);
+        \path [line, dashed] (queue3) -- (webrtc1);
+
+        \path [line, dashed] (tee) -- (queue4);
+        \path [line, dashed] (queue4) -- (webrtc2);
+
+        % Groups
+        \draw [line width=1pt,red,decorate,decoration={amplitude=15pt,brace,raise=30pt},yshift=4pt] (src.south west) -- (parse.south east);
+        \node [above=of parse,anchor=center,yshift=-25pt] {Customizable source pipeline};
+
+        \draw [line width=1pt,red,decorate,decoration={amplitude=10pt,brace,mirror,raise=5pt}] (payload.south west) -- (queue1.south west);
+        \node [below=of payload,anchor=center,yshift=25pt] {Customizable payload pipeline};
+    \end{tikzpicture}
+    \caption{Représentation de la pipeline dynamique utilisée}
+\end{figure}
 
 \section{Développement du serveur}
 \subsection{Conception de la base de données}
-Les utilisateurs devant pouvoir regrouper les caméras par pièce, j'ai modélisé la base de données qui sera utilisée par le serveur central.
-\TODO{Schéma de Base de données}
+Les utilisateurs devant pouvoir regrouper les caméras par pièce, j'ai modélisé la base de données qui sera utilisée par le serveur central.\newline
+\begin{figure}[H]
+    \begin{tikzpicture}[->,>=stealth']
+        \node [state] (room)
+        {
+            \begin{tabular}{l}
+                \textbf{Room}\\
+                \parbox{4cm}{
+                    \begin{itemize}
+                        \item Id
+                        \item Name
+                        \item Created at
+                        \item Updated at
+                    \end{itemize}
+                }
+            \end{tabular}
+        };
+        \node [state, right of=room, node distance=11cm] (camera)
+        {
+            \begin{tabular}{l}
+                \textbf{Camera}\\
+                \parbox{4cm}{
+                    \begin{itemize}
+                        \item Id
+                        \item Name
+                        \item Identifier
+                        \item RoomId
+                        \item Created at
+                        \item Updated at
+                    \end{itemize}
+                }
+            \end{tabular}
+        };
 
+        \path [line] (camera) -- node[anchor=center,near start,above]{        0..n} node[anchor=west,near end,above]{1          } (room);
+    \end{tikzpicture}
+    \caption{Schéma de la base de données utilisée}
+\end{figure}
 \subsection{Définition du protocole métier}
 Une fois la base de données mise en place, j'ai ensuite développé la logique qui permet aux caméras et aux clients d'échanger des messages et de pouvoir établir des connexions WebRTC.\newline
 Les connexions au serveur se font via des WebSockets, cela permet aux clients et aux caméras de générer des événements en temps réel.\newline
-Cela rend par contre le système entièrement asynchrone et complexifie l'ensemble des processus.\newline
+Cela rend le système entièrement asynchrone et complexifie l'ensemble des processus.\newline
 
-
-Un message à cette forme:\newline
-\{\newline
-    command: 'COMMAND',\newline
-    identifier: '0123456789',\newline
-    [...]\newline
-\}\newline
+Un message à cette forme:
+\begin{verbatim}
+{
+    command: 'COMMAND',
+    identifier: '0123456789',
+    [...]
+}
+\end{verbatim}
 
 Quand un message est envoyé, le champ 'identifier' représente le destinataire du message. Il est utilisé par le serveur central afin de savoir à quelle WebSocket il doit transmettre le message. Le serveur remplace aussi la valeur du champ par l'identifiant de la source du message de manière à ce que le destinataire sache de qui vient le message.\newline
 
@@ -219,6 +351,7 @@ Voici la liste des commandes que j'ai implémenté:\newline
     \item CAMERA\textunderscore UPDATE\newline
         Quand une camera démarre, elle va envoyé cette commande au serveur central afin qu'il notifie tous les clients connectés qu'une nouvelle camera est disponible. À la suite de quoi ils pourront envoyer une commande CALL.\newline
 \end{itemize}
+\newpage
 On entre ici dans la partie technique nécessaire au WebRTC\newline
 \begin{itemize}
     \item SDP\textunderscore OFFER et ICE\textunderscore CANDIDATE\newline
@@ -232,12 +365,30 @@ On entre ici dans la partie technique nécessaire au WebRTC\newline
 
 \chapter{Résultats}
 En définitive, le projet est fonctionnel et même très performant.\newline
+
 Il reste des bugs bloquants à résoudre avant de pouvoir être utilisé en situation réelle.\newline
 Il n'est pour l'instant pas possible d'afficher plus d'une camera à la fois et les caméras doivent être démarrées après le chargement de la page web. Le premier bug est du à mon implémentation, tandis que pour le second, je soupçonne l'implémentation du module WebRTC d'être défaillante.\newline
+
+L'administration se fait pour l'instant avec l'interface d'administration fournie avec Django.\newline
+
 J'ai eu de l'aide de la part d'un ami et collègue qui a pu tester ma solution sur d'autres modèles de micro-ordinateurs que ceux que j'avais à ma disposition et me faire des retours de bugs me permettant de stabiliser l'application et la rendre plus polyvalente. Comme par exemple en ajouter la possibilité de customiser la pipeline afin de s'adapter au matériel.\newline
+
+J'ai publié mon travail sur la plateforme Github (\url{https://github.com/room-2135/omniroom})
 Ce projet était vraiment très agréable à développer. J'aimerais continuer à le développer afin de pouvoir un jour le packager et le proposer à un plus large public.\newline
 
-J'aurais aimé trouver plus de documentation concernant le protocole WebRTC qui n'a pas été facile à utiliser.
+J'aurais aimé trouver plus de documentation concernant le protocole WebRTC qui n'a pas été facile à utiliser.\newline
 
-J'ai tout de même réussi à afficher un flux vidéo provenant d'une Raspberry pi 3 sur une page web avec une latence avoisinant les 10ms à 30 images par seconde.
+J'ai finalement réussi à afficher un flux vidéo provenant d'une Raspberry pi 3 sur une page web avec une latence avoisinant les 10ms à 30 images par seconde.\newline
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=.8\textwidth]{omniroom.png}
+    \caption{Capture d'écran de la solution avec un flux de test}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \frame{\includegraphics[width=.8\textwidth]{administration.png}}
+    \caption{Capture d'écran de l'interface d'administration}
+\end{figure}
+\listoffigures
+\makeutbmbackcover{}
 \end{document}
